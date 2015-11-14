@@ -8,18 +8,44 @@ var loki = require('lokijs');
  */
 var db = new loki('loki.json');
 var activeIssue;
-var issues = db.addCollection('issues');
-var estimates = db.addCollection('estimates');
+var issues;
+var estimates;
 
 var load = function () {
     db.loadDatabase({}, function () {
+        console.log('load dbs');
         issues = db.getCollection('issues');
+
         estimates = db.getCollection('estimates');
+        create(!issues, !estimates);
+        getActiveIssue();
     });
+};
+
+var create = function (createIssues, createEstimates) {
+    if (createIssues) {
+        issues = db.addCollection('issues');
+        console.log('created issues');
+    }
+    if (createEstimates) {
+        estimates = db.addCollection('estimates');
+        console.log('created estimates');
+    }
 };
 
 var save = function () {
     db.saveDatabase();
+    console.log('save dbs');
+};
+
+var getActiveIssue = function() {
+    var result = issues.find({active: true});
+    if (result.length > 0) {
+        activeIssue = result[0];
+        console.log('active issue restored');
+    } else {
+        console.log('No active issue');
+    }
 };
 
 
@@ -165,6 +191,33 @@ app.route('/scrummd/estimate').post(submitEstimate);
 /**
  * Server
  */
+
 var server = app.listen(3000, function () {
-    console.log('Example app listening');
+    console.log('Scrummd api started');
+    load();
 });
+
+// this function is called when you want the server to die gracefully
+// i.e. wait for existing connections
+var gracefulShutdown = function() {
+    console.log("Received kill signal, shutting down gracefully.");
+
+    save();
+
+    server.close(function() {
+        console.log("Closed out remaining connections.");
+        process.exit()
+    });
+
+    // if after
+    setTimeout(function() {
+        console.error("Could not close connections in time, forcefully shutting down");
+        process.exit()
+    }, 10*1000);
+};
+
+// listen for TERM signal .e.g. kill
+process.on ('SIGTERM', gracefulShutdown);
+
+// listen for INT signal e.g. Ctrl-C
+process.on ('SIGINT', gracefulShutdown);
