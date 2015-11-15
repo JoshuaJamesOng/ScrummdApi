@@ -125,7 +125,6 @@ var getIssue = function (req, res) {
 
     // Find issue
     var result = estimates.find({issue: issue});
-    console.log(result);
     if (result.length < 1) {
         res.sendStatus(400);
     }
@@ -133,6 +132,18 @@ var getIssue = function (req, res) {
     // Return result
     res.json(result);
 };
+
+var getCurrent = function (req, res) {
+    // Find issue
+    var result = issues.find({issue: activeIssue.issue});
+    if (result.length < 1) {
+        res.sendStatus(404);
+    }
+
+    // Return result
+    res.json(result);
+};
+
 
 var submitEstimate = function (req, res) {
     // Check for session
@@ -183,7 +194,7 @@ app.use(bodyParser.urlencoded({extended: true}));
 /**
  * Routing
  */
-app.route('/scrummd/issue').post(createIssue).put(updateIssue).delete(deleteIssue);
+app.route('/scrummd/issue').get(getCurrent).post(createIssue).put(updateIssue).delete(deleteIssue);
 app.route('/scrummd/issue/:issue').get(getIssue);
 app.route('/scrummd/estimate').post(submitEstimate);
 
